@@ -1,9 +1,8 @@
-// === Admin Panel - Intivelvet ===
+// === Admin Panel - Intivelvet con Firebase ===
 
-// Contraseña del admin (cámbiala por la que quieras)
 const ADMIN_PASSWORD = 'intivelvet2026';
 
-let products = JSON.parse(localStorage.getItem('intivelvet_products')) || [];
+let products = [];
 let editingId = null;
 let currentImageData = null;
 
@@ -14,7 +13,7 @@ function loginAdmin() {
     document.getElementById('adminLogin').hidden = true;
     document.getElementById('adminPanel').hidden = false;
     sessionStorage.setItem('admin_logged', 'true');
-    renderAdminProducts();
+    loadAdminProducts();
   } else {
     document.getElementById('loginError').hidden = false;
   }
@@ -31,99 +30,120 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sessionStorage.getItem('admin_logged') === 'true') {
     document.getElementById('adminLogin').hidden = true;
     document.getElementById('adminPanel').hidden = false;
-    renderAdminProducts();
+    loadAdminProducts();
   }
 
-  // Enter para login
   document.getElementById('adminPassword').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') loginAdmin();
   });
 });
 
-// === Productos ===
-function saveProducts() {
-  localStorage.setItem('intivelvet_products', JSON.stringify(products));
+// === Cargar productos desde Firebase ===
+async function loadAdminProducts() {
+  try {
+    const snapshot = await db.collection('products').orderBy('createdAt', 'desc').get();
+    products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderAdminProducts();
+  } catch (error) {
+    console.error('Error cargando productos:', error);
+    document.getElementById('adminProducts').innerHTML = '<p style="color:red;">Error al cargar productos. Verifica la conexión.</p>';
+  }
 }
 
-function getNextId() {
-  if (products.length === 0) return 1;
-  return Math.max(...products.map(p => p.id)) + 1;
+// === Comprimir imagen ===
+function compressImage(file, maxWidth = 600, quality = 0.7) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressed = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressed);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function previewImage(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    currentImageData = e.target.result;
+  compressImage(file).then(compressed => {
+    currentImageData = compressed;
     document.getElementById('imagePreview').innerHTML = `<img src="${currentImageData}" alt="Preview">`;
-  };
-  reader.readAsDataURL(file);
+  });
 }
 
-function saveProduct(event) {
+// === Guardar producto en Firebase ===
+async function saveProduct(event) {
   event.preventDefault();
 
-  const name = document.getElementById('prodName').value.trim();
-  const category = document.getElementById('prodCategory').value;
-  const description = document.getElementById('prodDescription').value.trim();
-  const price = parseInt(document.getElementById('prodPrice').value);
-  const originalPrice = document.getElementById('prodOriginalPrice').value
-    ? parseInt(document.getElementById('prodOriginalPrice').value)
-    : null;
-  const sizes = document.getElementById('prodSizes').value
-    .split(',').map(s => s.trim()).filter(s => s);
-  const colors = document.getElementById('prodColors').value
-    .split(',').map(s => s.trim()).filter(s => s);
-  const featured = document.getElementById('prodFeatured').checked;
-  const onSale = document.getElementById('prodOnSale').checked;
-  const available = document.getElementById('prodAvailable').checked;
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando...';
 
-  if (editingId) {
-    // Editar producto existente
-    const index = products.findIndex(p => p.id === editingId);
-    if (index !== -1) {
-      products[index] = {
-        ...products[index],
-        name,
-        category,
-        description,
-        price,
-        originalPrice,
-        sizes,
-        colors,
-        featured,
-        onSale,
-        available,
-        image: currentImageData || products[index].image
-      };
+  const productData = {
+    name: document.getElementById('prodName').value.trim(),
+    category: document.getElementById('prodCategory').value,
+    description: document.getElementById('prodDescription').value.trim(),
+    price: parseInt(document.getElementById('prodPrice').value),
+    originalPrice: document.getElementById('prodOriginalPrice').value
+      ? parseInt(document.getElementById('prodOriginalPrice').value)
+      : null,
+    sizes: document.getElementById('prodSizes').value
+      .split(',').map(s => s.trim()).filter(s => s),
+    colors: document.getElementById('prodColors').value
+      .split(',').map(s => s.trim()).filter(s => s),
+    featured: document.getElementById('prodFeatured').checked,
+    onSale: document.getElementById('prodOnSale').checked,
+    available: document.getElementById('prodAvailable').checked
+  };
+
+  try {
+    if (editingId) {
+      // Editar producto existente
+      const updateData = { ...productData };
+      if (currentImageData) {
+        updateData.image = currentImageData;
+      }
+      await db.collection('products').doc(editingId).update(updateData);
+    } else {
+      // Nuevo producto
+      productData.image = currentImageData || '';
+      productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('products').add(productData);
     }
-  } else {
-    // Nuevo producto
-    const newProduct = {
-      id: getNextId(),
-      name,
-      category,
-      description,
-      price,
-      originalPrice,
-      image: currentImageData || '',
-      sizes,
-      colors,
-      featured,
-      onSale,
-      available
-    };
-    products.push(newProduct);
+
+    await loadAdminProducts();
+    resetForm();
+    alert(editingId ? 'Producto actualizado' : 'Producto agregado');
+  } catch (error) {
+    console.error('Error guardando producto:', error);
+    alert('Error al guardar. Intenta de nuevo.');
   }
 
-  saveProducts();
-  renderAdminProducts();
-  resetForm();
+  saveBtn.disabled = false;
+  saveBtn.textContent = 'Guardar Producto';
 }
 
-function editProduct(id) {
+// === Editar producto ===
+async function editProduct(id) {
   const product = products.find(p => p.id === id);
   if (!product) return;
 
@@ -140,32 +160,46 @@ function editProduct(id) {
   document.getElementById('prodOnSale').checked = product.onSale;
   document.getElementById('prodAvailable').checked = product.available !== false;
 
-  currentImageData = product.image || null;
-  if (currentImageData && currentImageData.startsWith('data:')) {
-    document.getElementById('imagePreview').innerHTML = `<img src="${currentImageData}" alt="Preview">`;
+  currentImageData = null;
+  if (product.image) {
+    document.getElementById('imagePreview').innerHTML = `<img src="${product.image}" alt="Preview">`;
   } else {
     document.getElementById('imagePreview').innerHTML = '';
   }
 
-  // Scroll al formulario
   document.getElementById('productForm').scrollIntoView({ behavior: 'smooth' });
 }
 
-function toggleAvailability(id) {
+// === Cambiar disponibilidad ===
+async function toggleAvailability(id) {
   const product = products.find(p => p.id === id);
   if (!product) return;
-  product.available = !product.available;
-  saveProducts();
-  renderAdminProducts();
+
+  try {
+    await db.collection('products').doc(id).update({
+      available: !product.available
+    });
+    await loadAdminProducts();
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al actualizar disponibilidad.');
+  }
 }
 
-function deleteProduct(id) {
-  if (!confirm('¿Estás segura de eliminar este producto?')) return;
-  products = products.filter(p => p.id !== id);
-  saveProducts();
-  renderAdminProducts();
+// === Eliminar producto ===
+async function deleteProduct(id) {
+  if (!confirm('¿Estás segura de eliminar este producto? No se puede deshacer.')) return;
+
+  try {
+    await db.collection('products').doc(id).delete();
+    await loadAdminProducts();
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al eliminar producto.');
+  }
 }
 
+// === Reset formulario ===
 function resetForm() {
   editingId = null;
   currentImageData = null;
@@ -175,6 +209,7 @@ function resetForm() {
   document.getElementById('imagePreview').innerHTML = '';
 }
 
+// === Renderizar lista de productos ===
 function renderAdminProducts() {
   const container = document.getElementById('adminProducts');
   const countEl = document.getElementById('productCount');
@@ -186,7 +221,7 @@ function renderAdminProducts() {
   }
 
   container.innerHTML = products.map(product => {
-    const thumbHTML = product.image && product.image.startsWith('data:')
+    const thumbHTML = product.image
       ? `<img src="${product.image}" alt="${product.name}">`
       : '👙';
 
@@ -201,11 +236,11 @@ function renderAdminProducts() {
           </span>
         </div>
         <div class="admin-product-actions">
-          <button class="btn-edit" onclick="editProduct(${product.id})">Editar</button>
-          <button class="btn-toggle" onclick="toggleAvailability(${product.id})">
+          <button class="btn-edit" onclick="editProduct('${product.id}')">Editar</button>
+          <button class="btn-toggle" onclick="toggleAvailability('${product.id}')">
             ${product.available !== false ? 'Ocultar' : 'Mostrar'}
           </button>
-          <button class="btn-delete" onclick="deleteProduct(${product.id})">Eliminar</button>
+          <button class="btn-delete" onclick="deleteProduct('${product.id}')">Eliminar</button>
         </div>
       </div>
     `;

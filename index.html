@@ -46,7 +46,9 @@
   <section class="section" id="destacados">
     <div class="container">
       <h2 class="section-title">Destacados</h2>
-      <div class="products-grid" id="featuredGrid"></div>
+      <div class="products-grid" id="featuredGrid">
+        <p class="loading-text">Cargando productos...</p>
+      </div>
     </div>
   </section>
 
@@ -54,7 +56,9 @@
   <section class="section section-alt" id="promociones">
     <div class="container">
       <h2 class="section-title">🔥 Ofertas Especiales</h2>
-      <div class="products-grid" id="salesGrid"></div>
+      <div class="products-grid" id="salesGrid">
+        <p class="loading-text">Cargando ofertas...</p>
+      </div>
     </div>
   </section>
 
@@ -192,6 +196,10 @@
     </div>
   </footer>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -1,9 +1,7 @@
-// === Intivelvet - Catálogo Digital ===
+// === Intivelvet - Catálogo Digital con Firebase ===
 
-// Configuración
 const CONFIG = {
   whatsappNumber: '523388527384',
-  currency: 'COP',
   freeShippingMin: 150000,
   shippingOptions: [
     { id: 'local', name: 'Envío Local (mismo día)', price: 10000 },
@@ -13,16 +11,12 @@ const CONFIG = {
   ]
 };
 
-// Estado global
-let products = JSON.parse(localStorage.getItem('intivelvet_products')) || [];
+let products = [];
 let cart = JSON.parse(localStorage.getItem('intivelvet_cart')) || [];
 
 // === Inicialización ===
 document.addEventListener('DOMContentLoaded', async () => {
-  // Si no hay productos en localStorage, cargar los de ejemplo
-  if (products.length === 0) {
-    await loadDefaultProducts();
-  }
+  await loadProducts();
   renderFeatured();
   renderSales();
   renderCatalog();
@@ -30,22 +24,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   initEvents();
 });
 
-// === Cargar Productos por defecto ===
-async function loadDefaultProducts() {
+// === Cargar Productos desde Firebase ===
+async function loadProducts() {
   try {
-    const response = await fetch('data/products.json');
-    products = await response.json();
-    // Agregar campo available a todos
-    products = products.map(p => ({ ...p, available: true }));
-    saveProducts();
+    const snapshot = await db.collection('products').orderBy('createdAt', 'desc').get();
+    products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
     console.error('Error cargando productos:', error);
     products = [];
   }
-}
-
-function saveProducts() {
-  localStorage.setItem('intivelvet_products', JSON.stringify(products));
 }
 
 // === Renderizar Productos ===
@@ -56,7 +43,7 @@ function createProductCard(product) {
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : 0;
 
-  const imageHTML = product.image && product.image.startsWith('data:')
+  const imageHTML = product.image
     ? `<img src="${product.image}" alt="${product.name}">`
     : `<span class="placeholder-icon">👙</span>`;
 
@@ -76,10 +63,10 @@ function createProductCard(product) {
           ${product.originalPrice ? '<span class="original-price">' + formatPrice(product.originalPrice) + '</span>' : ''}
         </div>
         <div class="product-actions">
-          <button class="btn btn-cart" onclick="addToCart(${product.id})" aria-label="Agregar ${product.name} al carrito">
+          <button class="btn btn-cart" onclick="addToCart('${product.id}')" aria-label="Agregar ${product.name} al carrito">
             Agregar
           </button>
-          <button class="btn btn-whatsapp" onclick="orderByWhatsApp(${product.id})" aria-label="Pedir ${product.name} por WhatsApp">
+          <button class="btn btn-whatsapp" onclick="orderByWhatsApp('${product.id}')" aria-label="Pedir ${product.name} por WhatsApp">
             WhatsApp
           </button>
         </div>
@@ -92,14 +79,22 @@ function renderFeatured() {
   const grid = document.getElementById('featuredGrid');
   if (!grid) return;
   const featured = products.filter(p => p.featured && p.available);
-  grid.innerHTML = featured.map(createProductCard).join('');
+  if (featured.length === 0) {
+    grid.innerHTML = '<p class="loading-text">Próximamente productos destacados</p>';
+  } else {
+    grid.innerHTML = featured.map(createProductCard).join('');
+  }
 }
 
 function renderSales() {
   const grid = document.getElementById('salesGrid');
   if (!grid) return;
   const sales = products.filter(p => p.onSale && p.available);
-  grid.innerHTML = sales.map(createProductCard).join('');
+  if (sales.length === 0) {
+    grid.innerHTML = '<p class="loading-text">Próximamente ofertas especiales</p>';
+  } else {
+    grid.innerHTML = sales.map(createProductCard).join('');
+  }
 }
 
 function renderCatalog() {
@@ -229,16 +224,18 @@ function updateCartUI() {
       if (!product) return '';
       return `
         <div class="cart-item">
-          <div class="cart-item-image">👙</div>
+          <div class="cart-item-image">
+            ${product.image ? '<img src="' + product.image + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">' : '👙'}
+          </div>
           <div class="cart-item-details">
             <h4>${product.name}</h4>
             <span class="cart-item-price">${formatPrice(product.price)}</span>
             <div class="cart-item-qty">
-              <button onclick="updateQty(${product.id}, -1)" aria-label="Reducir cantidad">−</button>
+              <button onclick="updateQty('${product.id}', -1)" aria-label="Reducir cantidad">−</button>
               <span>${item.qty}</span>
-              <button onclick="updateQty(${product.id}, 1)" aria-label="Aumentar cantidad">+</button>
+              <button onclick="updateQty('${product.id}', 1)" aria-label="Aumentar cantidad">+</button>
             </div>
-            <button class="cart-item-remove" onclick="removeFromCart(${product.id})">Eliminar</button>
+            <button class="cart-item-remove" onclick="removeFromCart('${product.id}')">Eliminar</button>
           </div>
         </div>
       `;
@@ -275,8 +272,6 @@ function orderByWhatsApp(productId) {
 
 function checkoutByWhatsApp() {
   if (cart.length === 0) return;
-
-  // Mostrar modal de envío
   showShippingModal();
 }
 
@@ -284,7 +279,6 @@ function showShippingModal() {
   const total = getCartTotal();
   const modal = document.getElementById('shippingModal');
   const optionsHTML = CONFIG.shippingOptions.map(opt => {
-    // Si el total es mayor al mínimo, mostrar opción gratis
     if (opt.id === 'gratis' && total < CONFIG.freeShippingMin) return '';
     const priceText = opt.price === 0 ? 'Gratis' : formatPrice(opt.price);
     return `
@@ -305,9 +299,7 @@ function showShippingModal() {
         <button class="modal-close" onclick="closeShippingModal()">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="shipping-options">
-          ${optionsHTML}
-        </div>
+        <div class="shipping-options">${optionsHTML}</div>
         <div class="shipping-total">
           <p>Subtotal: <strong>${formatPrice(total)}</strong></p>
         </div>
@@ -345,9 +337,7 @@ function sendOrderWhatsApp() {
   });
 
   message += `\n📦 Envío: ${shippingOption.name}`;
-  if (shippingCost > 0) {
-    message += ` (${formatPrice(shippingCost)})`;
-  }
+  if (shippingCost > 0) message += ` (${formatPrice(shippingCost)})`;
   message += `\n💰 *Total: ${formatPrice(total)}*\n`;
   message += `\n¿Cómo procedo con el pago? Gracias.`;
 
@@ -365,7 +355,6 @@ function formatPrice(amount) {
 
 // === Eventos ===
 function initEvents() {
-  // Filtros
   const filterCat = document.getElementById('filterCategory');
   const filterPrice = document.getElementById('filterPrice');
   const filterSort = document.getElementById('filterSort');
@@ -373,7 +362,6 @@ function initEvents() {
   if (filterPrice) filterPrice.addEventListener('change', renderCatalog);
   if (filterSort) filterSort.addEventListener('change', renderCatalog);
 
-  // Carrito
   const cartBtn = document.getElementById('cartBtn');
   const cartClose = document.getElementById('cartClose');
   const cartOverlay = document.getElementById('cartOverlay');
@@ -385,7 +373,6 @@ function initEvents() {
   if (checkoutBtn) checkoutBtn.addEventListener('click', checkoutByWhatsApp);
   if (clearCartBtn) clearCartBtn.addEventListener('click', clearCart);
 
-  // Menú móvil
   const menuToggle = document.getElementById('menuToggle');
   if (menuToggle) {
     menuToggle.addEventListener('click', () => {

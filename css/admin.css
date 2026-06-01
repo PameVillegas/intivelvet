@@ -145,6 +145,13 @@
   border-style: dashed;
 }
 
+.form-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  margin-top: 4px;
+}
+
 .image-preview {
   margin-top: 8px;
 }
