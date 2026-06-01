@@ -2,18 +2,27 @@
 
 // Configuración
 const CONFIG = {
-  whatsappNumber: '573001234567', // Cambia por tu número real
+  whatsappNumber: '523388527384',
   currency: 'COP',
-  freeShippingMin: 150000
+  freeShippingMin: 150000,
+  shippingOptions: [
+    { id: 'local', name: 'Envío Local (mismo día)', price: 10000 },
+    { id: 'nacional', name: 'Envío Nacional (2-5 días)', price: 25000 },
+    { id: 'gratis', name: 'Envío Gratis (compras +$150.000)', price: 0 },
+    { id: 'recoger', name: 'Recoger en tienda', price: 0 }
+  ]
 };
 
 // Estado global
-let products = [];
+let products = JSON.parse(localStorage.getItem('intivelvet_products')) || [];
 let cart = JSON.parse(localStorage.getItem('intivelvet_cart')) || [];
 
 // === Inicialización ===
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadProducts();
+  // Si no hay productos en localStorage, cargar los de ejemplo
+  if (products.length === 0) {
+    await loadDefaultProducts();
+  }
   renderFeatured();
   renderSales();
   renderCatalog();
@@ -21,33 +30,47 @@ document.addEventListener('DOMContentLoaded', async () => {
   initEvents();
 });
 
-// === Cargar Productos ===
-async function loadProducts() {
+// === Cargar Productos por defecto ===
+async function loadDefaultProducts() {
   try {
     const response = await fetch('data/products.json');
     products = await response.json();
+    // Agregar campo available a todos
+    products = products.map(p => ({ ...p, available: true }));
+    saveProducts();
   } catch (error) {
     console.error('Error cargando productos:', error);
     products = [];
   }
 }
 
+function saveProducts() {
+  localStorage.setItem('intivelvet_products', JSON.stringify(products));
+}
+
 // === Renderizar Productos ===
 function createProductCard(product) {
+  if (!product.available) return '';
+
   const discount = product.originalPrice
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : 0;
 
+  const imageHTML = product.image && product.image.startsWith('data:')
+    ? `<img src="${product.image}" alt="${product.name}">`
+    : `<span class="placeholder-icon">👙</span>`;
+
   return `
     <article class="product-card">
       <div class="product-image">
-        <span class="placeholder-icon">👙</span>
+        ${imageHTML}
         ${product.onSale ? '<span class="badge badge-sale">-' + discount + '%</span>' : ''}
         ${product.featured && !product.onSale ? '<span class="badge badge-featured">Destacado</span>' : ''}
       </div>
       <div class="product-info">
         <h3>${product.name}</h3>
         <p class="category">${product.category}</p>
+        <p class="product-description">${product.description || ''}</p>
         <div class="product-pricing">
           <span class="price">${formatPrice(product.price)}</span>
           ${product.originalPrice ? '<span class="original-price">' + formatPrice(product.originalPrice) + '</span>' : ''}
@@ -67,50 +90,50 @@ function createProductCard(product) {
 
 function renderFeatured() {
   const grid = document.getElementById('featuredGrid');
-  const featured = products.filter(p => p.featured);
+  if (!grid) return;
+  const featured = products.filter(p => p.featured && p.available);
   grid.innerHTML = featured.map(createProductCard).join('');
 }
 
 function renderSales() {
   const grid = document.getElementById('salesGrid');
-  const sales = products.filter(p => p.onSale);
+  if (!grid) return;
+  const sales = products.filter(p => p.onSale && p.available);
   grid.innerHTML = sales.map(createProductCard).join('');
 }
 
 function renderCatalog() {
   const grid = document.getElementById('catalogGrid');
+  if (!grid) return;
   const noResults = document.getElementById('noResults');
   const filtered = getFilteredProducts();
 
   if (filtered.length === 0) {
     grid.innerHTML = '';
-    noResults.hidden = false;
+    if (noResults) noResults.hidden = false;
   } else {
     grid.innerHTML = filtered.map(createProductCard).join('');
-    noResults.hidden = true;
+    if (noResults) noResults.hidden = true;
   }
 }
 
 // === Filtros ===
 function getFilteredProducts() {
-  const category = document.getElementById('filterCategory').value;
-  const priceRange = document.getElementById('filterPrice').value;
-  const sort = document.getElementById('filterSort').value;
+  const category = document.getElementById('filterCategory')?.value || 'all';
+  const priceRange = document.getElementById('filterPrice')?.value || 'all';
+  const sort = document.getElementById('filterSort')?.value || 'default';
 
-  let filtered = [...products];
+  let filtered = products.filter(p => p.available);
 
-  // Filtrar por categoría
   if (category !== 'all') {
     filtered = filtered.filter(p => p.category === category);
   }
 
-  // Filtrar por precio
   if (priceRange !== 'all') {
     const [min, max] = priceRange.split('-').map(Number);
     filtered = filtered.filter(p => p.price >= min && p.price <= max);
   }
 
-  // Ordenar
   switch (sort) {
     case 'price-asc':
       filtered.sort((a, b) => a.price - b.price);
@@ -187,6 +210,8 @@ function updateCartUI() {
   const emptyEl = document.getElementById('cartEmpty');
   const totalEl = document.getElementById('cartTotal');
 
+  if (!countEl) return;
+
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
   countEl.textContent = totalItems;
 
@@ -251,6 +276,65 @@ function orderByWhatsApp(productId) {
 function checkoutByWhatsApp() {
   if (cart.length === 0) return;
 
+  // Mostrar modal de envío
+  showShippingModal();
+}
+
+function showShippingModal() {
+  const total = getCartTotal();
+  const modal = document.getElementById('shippingModal');
+  const optionsHTML = CONFIG.shippingOptions.map(opt => {
+    // Si el total es mayor al mínimo, mostrar opción gratis
+    if (opt.id === 'gratis' && total < CONFIG.freeShippingMin) return '';
+    const priceText = opt.price === 0 ? 'Gratis' : formatPrice(opt.price);
+    return `
+      <label class="shipping-option">
+        <input type="radio" name="shipping" value="${opt.id}" ${opt.id === 'local' ? 'checked' : ''}>
+        <span class="shipping-option-info">
+          <strong>${opt.name}</strong>
+          <span>${priceText}</span>
+        </span>
+      </label>
+    `;
+  }).join('');
+
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Selecciona tipo de envío</h3>
+        <button class="modal-close" onclick="closeShippingModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="shipping-options">
+          ${optionsHTML}
+        </div>
+        <div class="shipping-total">
+          <p>Subtotal: <strong>${formatPrice(total)}</strong></p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary btn-block" onclick="sendOrderWhatsApp()">Enviar Pedido por WhatsApp</button>
+      </div>
+    </div>
+  `;
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeShippingModal() {
+  document.getElementById('shippingModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function sendOrderWhatsApp() {
+  const selectedShipping = document.querySelector('input[name="shipping"]:checked');
+  if (!selectedShipping) return;
+
+  const shippingOption = CONFIG.shippingOptions.find(o => o.id === selectedShipping.value);
+  const subtotal = getCartTotal();
+  const shippingCost = shippingOption.price;
+  const total = subtotal + shippingCost;
+
   let message = `Hola Intivelvet 💕\n\nQuiero hacer un pedido:\n\n`;
 
   cart.forEach(item => {
@@ -260,17 +344,18 @@ function checkoutByWhatsApp() {
     }
   });
 
-  const total = getCartTotal();
-  message += `\n💰 *Total: ${formatPrice(total)}*\n`;
-
-  if (total >= CONFIG.freeShippingMin) {
-    message += `🚚 ¡Envío gratis incluido!\n`;
+  message += `\n📦 Envío: ${shippingOption.name}`;
+  if (shippingCost > 0) {
+    message += ` (${formatPrice(shippingCost)})`;
   }
-
+  message += `\n💰 *Total: ${formatPrice(total)}*\n`;
   message += `\n¿Cómo procedo con el pago? Gracias.`;
 
   const url = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
   window.open(url, '_blank');
+
+  closeShippingModal();
+  closeCart();
 }
 
 // === Utilidades ===
@@ -281,23 +366,33 @@ function formatPrice(amount) {
 // === Eventos ===
 function initEvents() {
   // Filtros
-  document.getElementById('filterCategory').addEventListener('change', renderCatalog);
-  document.getElementById('filterPrice').addEventListener('change', renderCatalog);
-  document.getElementById('filterSort').addEventListener('change', renderCatalog);
+  const filterCat = document.getElementById('filterCategory');
+  const filterPrice = document.getElementById('filterPrice');
+  const filterSort = document.getElementById('filterSort');
+  if (filterCat) filterCat.addEventListener('change', renderCatalog);
+  if (filterPrice) filterPrice.addEventListener('change', renderCatalog);
+  if (filterSort) filterSort.addEventListener('change', renderCatalog);
 
   // Carrito
-  document.getElementById('cartBtn').addEventListener('click', openCart);
-  document.getElementById('cartClose').addEventListener('click', closeCart);
-  document.getElementById('cartOverlay').addEventListener('click', closeCart);
-  document.getElementById('checkoutBtn').addEventListener('click', checkoutByWhatsApp);
-  document.getElementById('clearCartBtn').addEventListener('click', clearCart);
+  const cartBtn = document.getElementById('cartBtn');
+  const cartClose = document.getElementById('cartClose');
+  const cartOverlay = document.getElementById('cartOverlay');
+  const checkoutBtn = document.getElementById('checkoutBtn');
+  const clearCartBtn = document.getElementById('clearCartBtn');
+  if (cartBtn) cartBtn.addEventListener('click', openCart);
+  if (cartClose) cartClose.addEventListener('click', closeCart);
+  if (cartOverlay) cartOverlay.addEventListener('click', closeCart);
+  if (checkoutBtn) checkoutBtn.addEventListener('click', checkoutByWhatsApp);
+  if (clearCartBtn) clearCartBtn.addEventListener('click', clearCart);
 
   // Menú móvil
-  document.getElementById('menuToggle').addEventListener('click', () => {
-    document.querySelector('.nav').classList.toggle('active');
-  });
+  const menuToggle = document.getElementById('menuToggle');
+  if (menuToggle) {
+    menuToggle.addEventListener('click', () => {
+      document.querySelector('.nav').classList.toggle('active');
+    });
+  }
 
-  // Cerrar menú al hacer click en un enlace
   document.querySelectorAll('.nav a').forEach(link => {
     link.addEventListener('click', () => {
       document.querySelector('.nav').classList.remove('active');

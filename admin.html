@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Intivelvet</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Login -->
+  <div class="admin-login" id="adminLogin">
+    <div class="login-card">
+      <h2>Panel Administrador</h2>
+      <p>Ingresa la contraseña para gestionar productos</p>
+      <input type="password" id="adminPassword" placeholder="Contraseña" autocomplete="current-password">
+      <button class="btn btn-primary btn-block" onclick="loginAdmin()">Ingresar</button>
+      <p class="login-error" id="loginError" hidden>Contraseña incorrecta</p>
+    </div>
+  </div>
+
+  <!-- Panel Admin -->
+  <div class="admin-panel" id="adminPanel" hidden>
+    <header class="admin-header">
+      <div class="container admin-header-content">
+        <h1>🛠️ Panel Admin - Intivelvet</h1>
+        <div class="admin-actions-top">
+          <a href="index.html" class="btn btn-outline btn-sm">Ver Tienda</a>
+          <button class="btn btn-sm" onclick="logoutAdmin()">Salir</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container admin-main">
+      <!-- Agregar/Editar Producto -->
+      <section class="admin-section">
+        <h2 id="formTitle">Agregar Producto</h2>
+        <form class="product-form" id="productForm" onsubmit="saveProduct(event)">
+          <input type="hidden" id="editId">
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="prodName">Nombre del producto *</label>
+              <input type="text" id="prodName" required placeholder="Ej: Conjunto Encaje Floral">
+            </div>
+            <div class="form-group">
+              <label for="prodCategory">Categoría *</label>
+              <select id="prodCategory" required>
+                <option value="">Seleccionar...</option>
+                <option value="conjuntos">Conjuntos</option>
+                <option value="brasieres">Brasieres</option>
+                <option value="pantys">Pantys</option>
+                <option value="bodys">Bodys</option>
+                <option value="babydolls">Baby Dolls</option>
+                <option value="pijamas">Pijamas</option>
+                <option value="accesorios">Accesorios</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="prodDescription">Descripción</label>
+            <textarea id="prodDescription" rows="3" placeholder="Describe el producto..."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="prodPrice">Precio *</label>
+              <input type="number" id="prodPrice" required min="0" placeholder="89900">
+            </div>
+            <div class="form-group">
+              <label for="prodOriginalPrice">Precio original (si tiene descuento)</label>
+              <input type="number" id="prodOriginalPrice" min="0" placeholder="119900">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="prodSizes">Tallas (separadas por coma)</label>
+              <input type="text" id="prodSizes" placeholder="S, M, L, XL">
+            </div>
+            <div class="form-group">
+              <label for="prodColors">Colores (separados por coma)</label>
+              <input type="text" id="prodColors" placeholder="Negro, Rojo, Rosa">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="prodImage">Foto del producto</label>
+            <input type="file" id="prodImage" accept="image/*" onchange="previewImage(event)">
+            <div class="image-preview" id="imagePreview"></div>
+          </div>
+
+          <div class="form-row form-checkboxes">
+            <label class="checkbox-label">
+              <input type="checkbox" id="prodFeatured">
+              Producto destacado
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="prodOnSale">
+              En oferta
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="prodAvailable" checked>
+              Disponible
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar Producto</button>
+            <button type="button" class="btn btn-outline" onclick="resetForm()">Cancelar</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Lista de Productos -->
+      <section class="admin-section">
+        <h2>Productos (<span id="productCount">0</span>)</h2>
+        <div class="admin-products" id="adminProducts"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>
