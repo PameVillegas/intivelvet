@@ -731,6 +731,18 @@ body {
   font-size: 1rem;
 }
 
+.image-modal-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.image-modal-buttons .btn {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  font-size: 0.95rem;
+}
+
 /* Shipping Options */
 .shipping-options {
   display: flex;

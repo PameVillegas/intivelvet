@@ -88,7 +88,10 @@ function showImageModal(productId) {
         <h3>${product.name}</h3>
         <p>${product.description || ''}</p>
         <p class="image-modal-price">${formatPrice(product.price)}</p>
-        <button class="btn btn-whatsapp" onclick="orderByWhatsApp('${product.id}'); closeImageModal();">Pedir por WhatsApp</button>
+        <div class="image-modal-buttons">
+          <button class="btn btn-cart" onclick="addToCart('${product.id}'); closeImageModal();">Agregar al carrito</button>
+          <button class="btn btn-whatsapp" onclick="orderByWhatsApp('${product.id}'); closeImageModal();">Pedir por WhatsApp</button>
+        </div>
       </div>
     </div>
   `;
