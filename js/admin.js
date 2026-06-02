@@ -10,8 +10,8 @@ let currentImageData = null;
 function loginAdmin() {
   const password = document.getElementById('adminPassword').value;
   if (password === ADMIN_PASSWORD) {
-    document.getElementById('adminLogin').hidden = true;
-    document.getElementById('adminPanel').hidden = false;
+    document.getElementById('adminLogin').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
     sessionStorage.setItem('admin_logged', 'true');
     loadAdminProducts();
   } else {
@@ -21,15 +21,15 @@ function loginAdmin() {
 
 function logoutAdmin() {
   sessionStorage.removeItem('admin_logged');
-  document.getElementById('adminLogin').hidden = false;
-  document.getElementById('adminPanel').hidden = true;
+  document.getElementById('adminLogin').style.display = 'flex';
+  document.getElementById('adminPanel').style.display = 'none';
 }
 
 // Verificar sesión al cargar
 document.addEventListener('DOMContentLoaded', () => {
   if (sessionStorage.getItem('admin_logged') === 'true') {
-    document.getElementById('adminLogin').hidden = true;
-    document.getElementById('adminPanel').hidden = false;
+    document.getElementById('adminLogin').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
     loadAdminProducts();
   }
 
