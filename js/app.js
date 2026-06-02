@@ -1,7 +1,7 @@
 // === Intivelvet - Catálogo Digital con Firebase ===
 
 const CONFIG = {
-  whatsappNumber: '523388527384',
+  whatsappNumber: '543388527384',
   freeShippingMin: 150000,
   shippingOptions: [
     { id: 'local', name: 'Envío Local Gratis', price: 0 },
