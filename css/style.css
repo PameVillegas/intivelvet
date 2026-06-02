@@ -291,6 +291,7 @@ body {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .product-image img {
@@ -604,6 +605,179 @@ body {
 .cart-overlay.active {
   opacity: 1;
   pointer-events: all;
+}
+
+/* === Modal === */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-content {
+  background: var(--color-white);
+  border-radius: var(--radius);
+  max-width: 480px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-header h3 {
+  font-family: 'Playfair Display', serif;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  color: var(--color-text-light);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #eee;
+}
+
+/* Image Modal */
+.image-modal-content {
+  position: relative;
+  background: var(--color-white);
+  border-radius: var(--radius);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.image-modal-content img {
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--color-secondary);
+}
+
+.image-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.image-modal-info {
+  padding: 20px;
+}
+
+.image-modal-info h3 {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+
+.image-modal-info p {
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.image-modal-price {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 16px;
+}
+
+.image-modal-info .btn-whatsapp {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 12px;
+  font-size: 1rem;
+}
+
+/* Shipping Options */
+.shipping-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.shipping-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.shipping-option:hover {
+  border-color: var(--color-primary);
+}
+
+.shipping-option input[type="radio"] {
+  accent-color: var(--color-primary);
+}
+
+.shipping-option-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shipping-option-info strong {
+  font-size: 0.9rem;
+}
+
+.shipping-option-info span {
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+}
+
+.shipping-total {
+  text-align: right;
+  font-size: 1rem;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
 }
 
 /* === WhatsApp Float === */

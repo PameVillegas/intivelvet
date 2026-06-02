@@ -4,9 +4,8 @@ const CONFIG = {
   whatsappNumber: '523388527384',
   freeShippingMin: 150000,
   shippingOptions: [
-    { id: 'local', name: 'Envío Local (mismo día)', price: 10000 },
+    { id: 'local', name: 'Envío Local Gratis', price: 0 },
     { id: 'nacional', name: 'Envío Nacional (2-5 días)', price: 25000 },
-    { id: 'gratis', name: 'Envío Gratis (compras +$150.000)', price: 0 },
     { id: 'recoger', name: 'Recoger en tienda', price: 0 }
   ]
 };
@@ -49,7 +48,7 @@ function createProductCard(product) {
 
   return `
     <article class="product-card">
-      <div class="product-image">
+      <div class="product-image" onclick="showImageModal('${product.id}')">
         ${imageHTML}
         ${product.onSale ? '<span class="badge badge-sale">-' + discount + '%</span>' : ''}
         ${product.featured && !product.onSale ? '<span class="badge badge-featured">Destacado</span>' : ''}
@@ -73,6 +72,33 @@ function createProductCard(product) {
       </div>
     </article>
   `;
+}
+
+// === Modal de Imagen ===
+function showImageModal(productId) {
+  const product = products.find(p => p.id === productId);
+  if (!product || !product.image) return;
+
+  const modal = document.getElementById('imageModal');
+  modal.innerHTML = `
+    <div class="image-modal-content">
+      <button class="image-modal-close" onclick="closeImageModal()">&times;</button>
+      <img src="${product.image}" alt="${product.name}">
+      <div class="image-modal-info">
+        <h3>${product.name}</h3>
+        <p>${product.description || ''}</p>
+        <p class="image-modal-price">${formatPrice(product.price)}</p>
+        <button class="btn btn-whatsapp" onclick="orderByWhatsApp('${product.id}'); closeImageModal();">Pedir por WhatsApp</button>
+      </div>
+    </div>
+  `;
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+  document.getElementById('imageModal').classList.remove('active');
+  document.body.style.overflow = '';
 }
 
 function renderFeatured() {
@@ -279,7 +305,6 @@ function showShippingModal() {
   const total = getCartTotal();
   const modal = document.getElementById('shippingModal');
   const optionsHTML = CONFIG.shippingOptions.map(opt => {
-    if (opt.id === 'gratis' && total < CONFIG.freeShippingMin) return '';
     const priceText = opt.price === 0 ? 'Gratis' : formatPrice(opt.price);
     return `
       <label class="shipping-option">
