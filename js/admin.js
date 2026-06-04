@@ -1,10 +1,12 @@
 // === Admin Panel - Intivelvet con Firebase ===
 
 const ADMIN_PASSWORD = 'intivelvet2026';
+const AVAILABLE_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 
 let products = [];
 let editingId = null;
 let currentImageData = null;
+let colorRows = [];
 
 // === Login ===
 function loginAdmin() {
@@ -48,6 +50,72 @@ async function loadAdminProducts() {
     console.error('Error cargando productos:', error);
     document.getElementById('adminProducts').innerHTML = '<p style="color:red;">Error al cargar productos. Verifica la conexión.</p>';
   }
+}
+
+// === Colores y Talles ===
+function addColorRow(color, sizes) {
+  const id = Date.now() + Math.random();
+  colorRows.push({ id, color: color || '', sizes: sizes || [] });
+  renderColorSizesGrid();
+}
+
+function removeColorRow(id) {
+  colorRows = colorRows.filter(r => r.id !== id);
+  renderColorSizesGrid();
+}
+
+function renderColorSizesGrid() {
+  const grid = document.getElementById('colorSizesGrid');
+  if (colorRows.length === 0) {
+    grid.innerHTML = '<p style="color:#999;font-size:0.85rem;">No hay colores agregados.</p>';
+    return;
+  }
+
+  grid.innerHTML = colorRows.map(row => {
+    const sizesCheckboxes = AVAILABLE_SIZES.map(size => {
+      const checked = row.sizes.includes(size) ? 'checked' : '';
+      return '<label class="size-check"><input type="checkbox" value="' + size + '" ' + checked + ' onchange="updateRowSize(' + row.id + ', \'' + size + '\', this.checked)"> ' + size + '</label>';
+    }).join('');
+
+    return '<div class="color-row">' +
+      '<div class="color-row-header">' +
+      '<input type="text" class="color-input" value="' + row.color + '" placeholder="Nombre del color" onchange="updateRowColor(' + row.id + ', this.value)">' +
+      '<button type="button" class="btn-delete btn-sm" onclick="removeColorRow(' + row.id + ')">✕</button>' +
+      '</div>' +
+      '<div class="size-checks">' + sizesCheckboxes + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function updateRowColor(id, value) {
+  const row = colorRows.find(r => r.id === id);
+  if (row) row.color = value.trim();
+}
+
+function updateRowSize(id, size, checked) {
+  const row = colorRows.find(r => r.id === id);
+  if (!row) return;
+  if (checked && !row.sizes.includes(size)) {
+    row.sizes.push(size);
+  } else if (!checked) {
+    row.sizes = row.sizes.filter(s => s !== size);
+  }
+}
+
+function getColorSizesData() {
+  return colorRows
+    .filter(r => r.color)
+    .map(r => ({ color: r.color, sizes: r.sizes }));
+}
+
+function loadColorSizesData(variants) {
+  colorRows = [];
+  if (variants && variants.length > 0) {
+    variants.forEach(v => {
+      colorRows.push({ id: Date.now() + Math.random(), color: v.color, sizes: v.sizes || [] });
+    });
+  }
+  renderColorSizesGrid();
 }
 
 // === Comprimir imagen ===
@@ -106,10 +174,7 @@ async function saveProduct(event) {
     originalPrice: document.getElementById('prodOriginalPrice').value
       ? parseInt(document.getElementById('prodOriginalPrice').value)
       : null,
-    sizes: document.getElementById('prodSizes').value
-      .split(',').map(s => s.trim()).filter(s => s),
-    colors: document.getElementById('prodColors').value
-      .split(',').map(s => s.trim()).filter(s => s),
+    variants: getColorSizesData(),
     featured: document.getElementById('prodFeatured').checked,
     onSale: document.getElementById('prodOnSale').checked,
     available: document.getElementById('prodAvailable').checked
@@ -154,11 +219,12 @@ async function editProduct(id) {
   document.getElementById('prodDescription').value = product.description || '';
   document.getElementById('prodPrice').value = product.price;
   document.getElementById('prodOriginalPrice').value = product.originalPrice || '';
-  document.getElementById('prodSizes').value = (product.sizes || []).join(', ');
-  document.getElementById('prodColors').value = (product.colors || []).join(', ');
   document.getElementById('prodFeatured').checked = product.featured;
   document.getElementById('prodOnSale').checked = product.onSale;
   document.getElementById('prodAvailable').checked = product.available !== false;
+
+  // Cargar variantes de color/talle
+  loadColorSizesData(product.variants || []);
 
   currentImageData = null;
   if (product.image) {
@@ -203,10 +269,12 @@ async function deleteProduct(id) {
 function resetForm() {
   editingId = null;
   currentImageData = null;
+  colorRows = [];
   document.getElementById('formTitle').textContent = 'Agregar Producto';
   document.getElementById('productForm').reset();
   document.getElementById('prodAvailable').checked = true;
   document.getElementById('imagePreview').innerHTML = '';
+  renderColorSizesGrid();
 }
 
 // === Renderizar lista de productos ===

@@ -46,23 +46,28 @@ function createProductCard(product) {
     ? `<img src="${product.image}" alt="${product.name}">`
     : `<span class="placeholder-icon">👙</span>`;
 
-  const sizesHTML = product.sizes && product.sizes.length > 0
-    ? `<div class="product-options">
+  // Generar opciones de color/talle basado en variants
+  let variantsHTML = '';
+  if (product.variants && product.variants.length > 0) {
+    const colorsOptions = product.variants.map(v => `<option value="${v.color}">${v.color}</option>`).join('');
+    const firstSizes = product.variants[0].sizes || [];
+    const sizesOptions = firstSizes.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    variantsHTML = `
+      <div class="product-options">
+        <label>Color:</label>
+        <select class="option-select" id="color-${product.id}" onchange="updateSizesForColor('${product.id}')">
+          ${colorsOptions}
+        </select>
+      </div>
+      <div class="product-options">
         <label>Talle:</label>
         <select class="option-select" id="size-${product.id}">
-          ${product.sizes.map(s => `<option value="${s}">${s}</option>`).join('')}
+          ${sizesOptions}
         </select>
-      </div>`
-    : '';
-
-  const colorsHTML = product.colors && product.colors.length > 0
-    ? `<div class="product-options">
-        <label>Color:</label>
-        <select class="option-select" id="color-${product.id}">
-          ${product.colors.map(c => `<option value="${c}">${c}</option>`).join('')}
-        </select>
-      </div>`
-    : '';
+      </div>
+    `;
+  }
 
   return `
     <article class="product-card">
@@ -79,8 +84,7 @@ function createProductCard(product) {
           <span class="price">${formatPrice(product.price)}</span>
           ${product.originalPrice ? '<span class="original-price">' + formatPrice(product.originalPrice) + '</span>' : ''}
         </div>
-        ${sizesHTML}
-        ${colorsHTML}
+        ${variantsHTML}
         <div class="product-actions">
           <button class="btn btn-cart" onclick="addToCart('${product.id}')" aria-label="Agregar ${product.name} al carrito">
             Agregar
@@ -92,6 +96,22 @@ function createProductCard(product) {
       </div>
     </article>
   `;
+}
+
+// Actualizar talles cuando se cambia el color
+function updateSizesForColor(productId) {
+  const product = products.find(p => p.id === productId);
+  if (!product || !product.variants) return;
+
+  const colorEl = document.getElementById(`color-${productId}`);
+  const sizeEl = document.getElementById(`size-${productId}`);
+  if (!colorEl || !sizeEl) return;
+
+  const selectedColor = colorEl.value;
+  const variant = product.variants.find(v => v.color === selectedColor);
+  const sizes = variant ? variant.sizes : [];
+
+  sizeEl.innerHTML = sizes.map(s => `<option value="${s}">${s}</option>`).join('');
 }
 
 // === Modal de Imagen ===

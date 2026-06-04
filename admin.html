@@ -77,15 +77,12 @@
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="prodSizes">Tallas (separadas por coma)</label>
-              <input type="text" id="prodSizes" placeholder="S, M, L, XL">
-            </div>
-            <div class="form-group">
-              <label for="prodColors">Colores (separados por coma)</label>
-              <input type="text" id="prodColors" placeholder="Negro, Rojo, Rosa">
-            </div>
+          <!-- Colores y Talles por color -->
+          <div class="form-group">
+            <label>Colores y talles disponibles</label>
+            <p class="form-hint">Seleccioná los colores y marcá qué talles tiene cada color.</p>
+            <div class="color-sizes-grid" id="colorSizesGrid"></div>
+            <button type="button" class="btn btn-outline btn-sm" onclick="addColorRow()" style="margin-top:8px;">+ Agregar color</button>
           </div>
 
           <div class="form-group">
