@@ -376,6 +376,41 @@ body {
   gap: 8px;
 }
 
+.product-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.product-options label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-light);
+}
+
+.option-select {
+  padding: 4px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  background: var(--color-bg);
+  cursor: pointer;
+}
+
+.option-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.cart-item-options {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  margin-bottom: 2px;
+}
+
 .product-actions .btn {
   flex: 1;
   text-align: center;

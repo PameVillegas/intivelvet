@@ -46,6 +46,24 @@ function createProductCard(product) {
     ? `<img src="${product.image}" alt="${product.name}">`
     : `<span class="placeholder-icon">👙</span>`;
 
+  const sizesHTML = product.sizes && product.sizes.length > 0
+    ? `<div class="product-options">
+        <label>Talle:</label>
+        <select class="option-select" id="size-${product.id}">
+          ${product.sizes.map(s => `<option value="${s}">${s}</option>`).join('')}
+        </select>
+      </div>`
+    : '';
+
+  const colorsHTML = product.colors && product.colors.length > 0
+    ? `<div class="product-options">
+        <label>Color:</label>
+        <select class="option-select" id="color-${product.id}">
+          ${product.colors.map(c => `<option value="${c}">${c}</option>`).join('')}
+        </select>
+      </div>`
+    : '';
+
   return `
     <article class="product-card">
       <div class="product-image" onclick="showImageModal('${product.id}')">
@@ -61,6 +79,8 @@ function createProductCard(product) {
           <span class="price">${formatPrice(product.price)}</span>
           ${product.originalPrice ? '<span class="original-price">' + formatPrice(product.originalPrice) + '</span>' : ''}
         </div>
+        ${sizesHTML}
+        ${colorsHTML}
         <div class="product-actions">
           <button class="btn btn-cart" onclick="addToCart('${product.id}')" aria-label="Agregar ${product.name} al carrito">
             Agregar
@@ -178,11 +198,18 @@ function addToCart(productId) {
   const product = products.find(p => p.id === productId);
   if (!product) return;
 
-  const existing = cart.find(item => item.id === productId);
+  const sizeEl = document.getElementById(`size-${productId}`);
+  const colorEl = document.getElementById(`color-${productId}`);
+  const size = sizeEl ? sizeEl.value : '';
+  const color = colorEl ? colorEl.value : '';
+
+  const cartKey = `${productId}_${size}_${color}`;
+  const existing = cart.find(item => item.cartKey === cartKey);
+
   if (existing) {
     existing.qty += 1;
   } else {
-    cart.push({ id: productId, qty: 1 });
+    cart.push({ id: productId, cartKey, size, color, qty: 1 });
   }
 
   saveCart();
@@ -190,19 +217,19 @@ function addToCart(productId) {
   openCart();
 }
 
-function removeFromCart(productId) {
-  cart = cart.filter(item => item.id !== productId);
+function removeFromCart(cartKey) {
+  cart = cart.filter(item => item.cartKey !== cartKey);
   saveCart();
   updateCartUI();
 }
 
-function updateQty(productId, delta) {
-  const item = cart.find(i => i.id === productId);
+function updateQty(cartKey, delta) {
+  const item = cart.find(i => i.cartKey === cartKey);
   if (!item) return;
 
   item.qty += delta;
   if (item.qty <= 0) {
-    removeFromCart(productId);
+    removeFromCart(cartKey);
     return;
   }
 
@@ -251,6 +278,7 @@ function updateCartUI() {
     itemsEl.innerHTML = cart.map(item => {
       const product = products.find(p => p.id === item.id);
       if (!product) return '';
+      const optionsText = [item.size, item.color].filter(Boolean).join(' - ');
       return `
         <div class="cart-item">
           <div class="cart-item-image">
@@ -258,13 +286,14 @@ function updateCartUI() {
           </div>
           <div class="cart-item-details">
             <h4>${product.name}</h4>
+            ${optionsText ? '<span class="cart-item-options">' + optionsText + '</span>' : ''}
             <span class="cart-item-price">${formatPrice(product.price)}</span>
             <div class="cart-item-qty">
-              <button onclick="updateQty('${product.id}', -1)" aria-label="Reducir cantidad">−</button>
+              <button onclick="updateQty('${item.cartKey}', -1)" aria-label="Reducir cantidad">−</button>
               <span>${item.qty}</span>
-              <button onclick="updateQty('${product.id}', 1)" aria-label="Aumentar cantidad">+</button>
+              <button onclick="updateQty('${item.cartKey}', 1)" aria-label="Aumentar cantidad">+</button>
             </div>
-            <button class="cart-item-remove" onclick="removeFromCart('${product.id}')">Eliminar</button>
+            <button class="cart-item-remove" onclick="removeFromCart('${item.cartKey}')">Eliminar</button>
           </div>
         </div>
       `;
@@ -290,10 +319,17 @@ function orderByWhatsApp(productId) {
   const product = products.find(p => p.id === productId);
   if (!product) return;
 
-  const message = `Hola Intivelvet 💕\n\nMe interesa:\n` +
+  const sizeEl = document.getElementById(`size-${productId}`);
+  const colorEl = document.getElementById(`color-${productId}`);
+  const size = sizeEl ? sizeEl.value : '';
+  const color = colorEl ? colorEl.value : '';
+
+  let message = `Hola Intivelvet 💕\n\nMe interesa:\n` +
     `📌 *${product.name}*\n` +
-    `💰 Precio: ${formatPrice(product.price)}\n\n` +
-    `¿Tienen disponibilidad? Gracias.`;
+    `💰 Precio: ${formatPrice(product.price)}\n`;
+  if (size) message += `📏 Talle: ${size}\n`;
+  if (color) message += `🎨 Color: ${color}\n`;
+  message += `\n¿Tienen disponibilidad? Gracias.`;
 
   const url = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
   window.open(url, '_blank');
@@ -360,7 +396,11 @@ function sendOrderWhatsApp() {
   cart.forEach(item => {
     const product = products.find(p => p.id === item.id);
     if (product) {
-      message += `• ${product.name} x${item.qty} — ${formatPrice(product.price * item.qty)}\n`;
+      let line = `• ${product.name}`;
+      if (item.size) line += ` (Talle: ${item.size})`;
+      if (item.color) line += ` (Color: ${item.color})`;
+      line += ` x${item.qty} — ${formatPrice(product.price * item.qty)}`;
+      message += line + '\n';
     }
   });
 
