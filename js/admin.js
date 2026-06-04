@@ -1,12 +1,21 @@
 // === Admin Panel - Intivelvet con Firebase ===
 
 const ADMIN_PASSWORD = 'intivelvet2026';
-const AVAILABLE_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+const SIZES_STANDARD = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+const SIZES_CORPINO = ['85', '90', '95', '100', '110'];
 
 let products = [];
 let editingId = null;
 let currentImageData = null;
 let colorRows = [];
+
+function getAvailableSizes() {
+  const category = document.getElementById('prodCategory').value;
+  if (category === 'corpinos' || category === 'conjuntos') {
+    return SIZES_CORPINO;
+  }
+  return SIZES_STANDARD;
+}
 
 // === Login ===
 function loginAdmin() {
@@ -37,6 +46,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('adminPassword').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') loginAdmin();
+  });
+
+  // Al cambiar categoría, actualizar talles disponibles
+  document.getElementById('prodCategory').addEventListener('change', () => {
+    renderColorSizesGrid();
   });
 });
 
@@ -71,8 +85,10 @@ function renderColorSizesGrid() {
     return;
   }
 
+  const availableSizes = getAvailableSizes();
+
   grid.innerHTML = colorRows.map(row => {
-    const sizesCheckboxes = AVAILABLE_SIZES.map(size => {
+    const sizesCheckboxes = availableSizes.map(size => {
       const checked = row.sizes.includes(size) ? 'checked' : '';
       return '<label class="size-check"><input type="checkbox" value="' + size + '" ' + checked + ' onchange="updateRowSize(' + row.id + ', \'' + size + '\', this.checked)"> ' + size + '</label>';
     }).join('');
