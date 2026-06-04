@@ -3,6 +3,7 @@
 const ADMIN_PASSWORD = 'intivelvet2026';
 const SIZES_STANDARD = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 const SIZES_CORPINO = ['85', '90', '95', '100', '110'];
+const SIZES_MEDIAS = ['0 a 3 meses', '3 a 6 meses', '6 a 12 meses', '12 a 24 meses', 'Talle único', '35 al 37', '38 al 40', '41 al 43', '44 al 46'];
 
 let products = [];
 let editingId = null;
@@ -13,6 +14,9 @@ function getAvailableSizes() {
   const category = document.getElementById('prodCategory').value;
   if (category === 'corpinos' || category === 'conjuntos') {
     return SIZES_CORPINO;
+  }
+  if (category === 'medias') {
+    return SIZES_MEDIAS;
   }
   return SIZES_STANDARD;
 }
