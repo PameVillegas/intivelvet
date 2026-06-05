@@ -49,24 +49,42 @@ function createProductCard(product) {
   // Generar opciones de color/talle basado en variants
   let variantsHTML = '';
   if (product.variants && product.variants.length > 0) {
-    const colorsOptions = product.variants.map(v => `<option value="${v.color}">${v.color}</option>`).join('');
-    const firstSizes = product.variants[0].sizes || [];
-    const sizesOptions = firstSizes.map(s => `<option value="${s}">${s}</option>`).join('');
+    // Filtrar colores que tengan al menos un talle con stock
+    const availableVariants = product.variants.filter(v => 
+      v.sizes && v.sizes.some(s => (typeof s === 'string') || s.stock > 0)
+    );
+    
+    if (availableVariants.length > 0) {
+      const colorsOptions = availableVariants.map(v => {
+        const hasStock = v.sizes && v.sizes.some(s => (typeof s === 'string') || s.stock > 0);
+        return `<option value="${v.color}" ${!hasStock ? 'disabled' : ''}>${v.color}${!hasStock ? ' (Agotado)' : ''}</option>`;
+      }).join('');
 
-    variantsHTML = `
-      <div class="product-options">
-        <label>Color:</label>
-        <select class="option-select" id="color-${product.id}" onchange="updateSizesForColor('${product.id}')">
-          ${colorsOptions}
-        </select>
-      </div>
-      <div class="product-options">
-        <label>Talle:</label>
-        <select class="option-select" id="size-${product.id}">
-          ${sizesOptions}
-        </select>
-      </div>
-    `;
+      const firstSizes = availableVariants[0].sizes || [];
+      const sizesOptions = firstSizes.map(s => {
+        const size = typeof s === 'string' ? s : s.size;
+        const stock = typeof s === 'string' ? 1 : s.stock;
+        if (stock <= 0) {
+          return `<option value="${size}" disabled>⚊ ${size} (Agotado)</option>`;
+        }
+        return `<option value="${size}">${size}</option>`;
+      }).join('');
+
+      variantsHTML = `
+        <div class="product-options">
+          <label>Color:</label>
+          <select class="option-select" id="color-${product.id}" onchange="updateSizesForColor('${product.id}')">
+            ${colorsOptions}
+          </select>
+        </div>
+        <div class="product-options">
+          <label>Talle:</label>
+          <select class="option-select" id="size-${product.id}">
+            ${sizesOptions}
+          </select>
+        </div>
+      `;
+    }
   }
 
   return `
@@ -111,7 +129,14 @@ function updateSizesForColor(productId) {
   const variant = product.variants.find(v => v.color === selectedColor);
   const sizes = variant ? variant.sizes : [];
 
-  sizeEl.innerHTML = sizes.map(s => `<option value="${s}">${s}</option>`).join('');
+  sizeEl.innerHTML = sizes.map(s => {
+    const size = typeof s === 'string' ? s : s.size;
+    const stock = typeof s === 'string' ? 1 : s.stock;
+    if (stock <= 0) {
+      return `<option value="${size}" disabled>⚊ ${size} (Agotado)</option>`;
+    }
+    return `<option value="${size}">${size}</option>`;
+  }).join('');
 }
 
 // === Modal de Imagen ===

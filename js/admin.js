@@ -91,8 +91,13 @@ function renderColorSizesGrid() {
 
   grid.innerHTML = colorRows.map(row => {
     const sizesCheckboxes = availableSizes.map(size => {
-      const checked = row.sizes.includes(size) ? 'checked' : '';
-      return '<label class="size-check"><input type="checkbox" value="' + size + '" ' + checked + ' onchange="updateRowSize(' + row.id + ', \'' + size + '\', this.checked)"> ' + size + '</label>';
+      const sizeData = row.sizes.find(s => s.size === size);
+      const checked = sizeData ? 'checked' : '';
+      const stock = sizeData ? sizeData.stock : 0;
+      return '<div class="size-check-item">' +
+        '<label class="size-check"><input type="checkbox" value="' + size + '" ' + checked + ' onchange="updateRowSize(' + row.id + ', \'' + size + '\', this.checked)"> ' + size + '</label>' +
+        (sizeData ? '<input type="number" class="stock-input" min="0" value="' + stock + '" placeholder="Stock" onchange="updateRowStock(' + row.id + ', \'' + size + '\', this.value)">' : '') +
+        '</div>';
     }).join('');
 
     return '<div class="color-row">' +
@@ -113,11 +118,24 @@ function updateRowColor(id, value) {
 function updateRowSize(id, size, checked) {
   const row = colorRows.find(r => r.id === id);
   if (!row) return;
-  if (checked && !row.sizes.includes(size)) {
-    row.sizes.push(size);
-  } else if (!checked) {
-    row.sizes = row.sizes.filter(s => s !== size);
+  if (checked) {
+    if (!row.sizes.find(s => s.size === size)) {
+      row.sizes.push({ size, stock: 1 });
+    }
+  } else {
+    row.sizes = row.sizes.filter(s => s.size !== size);
   }
+  renderColorSizesGrid();
+}
+
+function updateRowStock(id, size, value) {
+  const row = colorRows.find(r => r.id === id);
+  if (!row) return;
+  const sizeData = row.sizes.find(s => s.size === size);
+  if (sizeData) {
+    sizeData.stock = parseInt(value) || 0;
+  }
+}
 }
 
 function getColorSizesData() {
@@ -130,7 +148,12 @@ function loadColorSizesData(variants) {
   colorRows = [];
   if (variants && variants.length > 0) {
     variants.forEach(v => {
-      colorRows.push({ id: Date.now() + Math.random(), color: v.color, sizes: v.sizes || [] });
+      // Compatibilidad: si sizes es array de strings, convertir a objetos
+      const sizes = (v.sizes || []).map(s => {
+        if (typeof s === 'string') return { size: s, stock: 1 };
+        return s;
+      });
+      colorRows.push({ id: Date.now() + Math.random(), color: v.color, sizes });
     });
   }
   renderColorSizesGrid();
