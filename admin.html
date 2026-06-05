@@ -14,7 +14,15 @@
     <div class="login-card">
       <h2>Panel Administrador</h2>
       <p>Ingresa la contraseña para gestionar productos</p>
-      <input type="password" id="adminPassword" placeholder="Contraseña" autocomplete="current-password">
+      <div class="password-field">
+        <input type="password" id="adminPassword" placeholder="Contraseña" autocomplete="current-password">
+        <button type="button" class="toggle-password" onclick="togglePassword()" aria-label="Mostrar contraseña">
+          <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
       <button class="btn btn-primary btn-block" onclick="loginAdmin()">Ingresar</button>
       <p class="login-error" id="loginError" hidden>Contraseña incorrecta</p>
     </div>
