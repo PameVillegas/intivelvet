@@ -16,7 +16,7 @@
   --color-text: #333;
   --color-text-light: #666;
   --color-white: #fff;
-  --color-bg: #faf8f6;
+  --color-bg: #fff5f7;
   --color-sale: #e63946;
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
@@ -57,7 +57,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 90px;
+  height: 110px;
 }
 
 .logo {
@@ -67,8 +67,8 @@ body {
 }
 
 .logo-img {
-  height: 80px;
-  width: 80px;
+  height: 100px;
+  width: 100px;
   object-fit: contain;
   border-radius: 50%;
 }
@@ -139,7 +139,7 @@ body {
 
 /* === Hero === */
 .hero {
-  margin-top: 90px;
+  margin-top: 110px;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
   color: var(--color-white);
   padding: 100px 0;
