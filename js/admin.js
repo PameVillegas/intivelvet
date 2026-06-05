@@ -136,7 +136,6 @@ function updateRowStock(id, size, value) {
     sizeData.stock = parseInt(value) || 0;
   }
 }
-}
 
 function getColorSizesData() {
   return colorRows
