@@ -331,6 +331,25 @@
   color: #721c24;
 }
 
+.status-nostock {
+  background: #1a1a1a;
+  color: #fff;
+  font-weight: 700;
+}
+
+.admin-product-item.no-stock {
+  background: #2a2a2a;
+  border: 2px solid #000;
+}
+
+.admin-product-item.no-stock .admin-product-info h4 {
+  color: #fff;
+}
+
+.admin-product-item.no-stock .admin-product-info p {
+  color: #ccc;
+}
+
 .admin-product-actions {
   display: flex;
   gap: 8px;

@@ -334,12 +334,26 @@ function renderAdminProducts() {
       ? `<img src="${product.image}" alt="${product.name}">`
       : '👙';
 
+    // Calcular stock total
+    let totalStock = 0;
+    if (product.variants && product.variants.length > 0) {
+      product.variants.forEach(v => {
+        if (v.sizes) {
+          v.sizes.forEach(s => {
+            totalStock += (typeof s === 'string') ? 1 : (s.stock || 0);
+          });
+        }
+      });
+    }
+    const noStock = product.variants && product.variants.length > 0 && totalStock === 0;
+
     return `
-      <div class="admin-product-item">
+      <div class="admin-product-item ${noStock ? 'no-stock' : ''}">
         <div class="admin-product-thumb">${thumbHTML}</div>
         <div class="admin-product-info">
           <h4>${product.name}</h4>
           <p>${product.category} — $${product.price.toLocaleString('es-CO')}</p>
+          ${noStock ? '<span class="product-status status-nostock">⚠ SIN STOCK</span>' : ''}
           <span class="product-status ${product.available !== false ? 'status-available' : 'status-unavailable'}">
             ${product.available !== false ? '✓ Disponible' : '✗ No disponible'}
           </span>
